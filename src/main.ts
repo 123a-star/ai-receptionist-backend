@@ -4,10 +4,10 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Ye line aapke frontend ko backend se baat karne degi
+  // Frontend ke liye CORS
   app.enableCors();
 
-  // Vercel serverless functions ke liye port 3000 par listen karna zaroori hai
-  await app.listen(3000);
+  // Vercel apna port khud assign karega, warna local par 3000 chalega
+  await app.listen(process.env.PORT || 3000);
 }
 bootstrap();
