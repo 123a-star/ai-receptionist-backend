@@ -1,29 +1,31 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { ExpressAdapter } from '@nestjs/platform-express';
 
-// Express engine ko import kar rahe hain
-const express = require('express');
-const server = express();
+// App instance ko memory mein save karne ke liye variable
+let app: any;
 
-async function bootstrap() {
-  // NestJS ko seedha Express engine ke sath jod rahe hain
-  const app = await NestFactory.create(AppModule, new ExpressAdapter(server));
+// 1. Vercel Serverless Function (Production)
+export default async function handler(req: any, res: any) {
+  // Agar app start nahi hui hai, toh pehle use initialize karein aur WAIT karein
+  if (!app) {
+    app = await NestFactory.create(AppModule);
+    app.enableCors();
+    await app.init(); // Ye line routes ko attach hone tak execution rokegi
+  }
   
-  app.enableCors();
-  
-  // App ko initialize karein (bina port assign kiye)
-  await app.init();
-  
-  // Agar aap code apne laptop (local) par chala rahe hain, toh 3000 port use karein
-  if (!process.env.VERCEL) {
-    server.listen(3000, () => {
+  // Initialize hone ke baad Express engine nikaalein aur request usme pass karein
+  const expressApp = app.getHttpAdapter().getInstance();
+  return expressApp(req, res);
+}
+
+// 2. Local Environment (Aapke Laptop ke liye)
+if (!process.env.VERCEL) {
+  async function bootstrapLocal() {
+    const localApp = await NestFactory.create(AppModule);
+    localApp.enableCors();
+    await localApp.listen(3000, () => {
       console.log('Local server running on port 3000');
     });
   }
+  bootstrapLocal();
 }
-
-bootstrap();
-
-// Vercel seedha is engine ko utha lega aur khud port de dega
-export default server;
